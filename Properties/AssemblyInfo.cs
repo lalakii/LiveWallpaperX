@@ -5,6 +5,6 @@ using System.Reflection;
 [assembly: AssemblyProduct("LiveWallpaperX")]
 [assembly: AssemblyDescription("LiveWallpaperX")]
 [assembly: AssemblyCopyright("Copyright (C) 2026 Lalaki.")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.0.1")]
+[assembly: AssemblyFileVersion("1.0.0.1")]
 [assembly: ComVisible(false)]

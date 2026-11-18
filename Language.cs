@@ -1,46 +1,45 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-
-namespace LiveWallpaperX
+﻿namespace LiveWallpaperX
 {
     public static class Language
     {
-        public static readonly Dictionary<string, LanguagePack> Languages = new Dictionary<string, LanguagePack>();
+        private static readonly Dictionary<string, LanguagePack> Languages = [];
 
-        public static void InstallLanguage(string langName, LanguagePack pack)
+        private static void InstallLanguage(string langName, LanguagePack pack)
         {
             Languages.Add(langName.ToLowerInvariant(), pack);
         }
 
         public class LanguagePack
         {
-            public string Title { get; set; }
-            public string SetupTitle { get; set; }
-            public string Menu { get; set; }
-            public string SelectVideo { get; set; }
-            public string AutoRun { get; set; }
-            public string ForceExit { get; set; }
-            public string Help { get; set; }
-            public string Source { get; set; }
-            public string VideoFiles { get; set; }
+            public string? Title { get; set; }
+            public string? SetupTitle { get; set; }
+            public string? Menu { get; set; }
+            public string? SelectVideo { get; set; }
+            public string? AutoRun { get; set; }
+            public string? ForceExit { get; set; }
+            public string? Reset { get; set; }
+            public string? Help { get; set; }
+            public string? Source { get; set; }
+            public string? VideoFiles { get; set; }
         }
 
-        public static LanguagePack GetLanguagePack(string langName)
+        public static LanguagePack GetLanguagePack(string? langName)
         {
-            string name = langName;
-            if (string.IsNullOrEmpty(name))
+            string name;
+            if (langName == null || string.IsNullOrWhiteSpace(langName))
             {
-                name = CultureInfo.CurrentUICulture.Name;
+                name = System.Globalization.CultureInfo.CurrentUICulture.Name;
+            }
+            else
+            {
+                name = langName;
             }
 
             name = name.ToLowerInvariant();
-            if (Languages.ContainsKey(name))
-            {
-                return Languages[name];
-            }
+            Languages.TryGetValue(name, out LanguagePack? value);
+            value ??= Languages.FirstOrDefault().Value;
 
-            return Languages.FirstOrDefault().Value;
+            return value;
         }
 
         static Language()
@@ -53,6 +52,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Select a Video File",
                 VideoFiles = "Video Files",
                 AutoRun = "Auto Start on Boot",
+                Reset = "Reset to Defaults",
                 ForceExit = "Force Exit Program",
                 Help = "Shortcuts:\r\n\r\n\tCtrl + Alt + O : Show or hide the setup window;\r\n\r\n\tCtrl + Alt + P : Play or pause the video.",
                 Source = "Source Code (GPL 2.0)"
@@ -67,6 +67,7 @@ namespace LiveWallpaperX
                 SelectVideo = "选择一个视频文件",
                 VideoFiles = "视频文件",
                 AutoRun = "开机自启",
+                Reset = "恢复默认设置",
                 ForceExit = "强行退出程序",
                 Help = "快捷键:\r\n\r\n\tCtrl + Alt + O : 显示或隐藏设置界面；\r\n\r\n\tCtrl + Alt + P : 播放或暂停视频。",
                 Source = "源代码 (GPL 2.0)"
@@ -81,6 +82,7 @@ namespace LiveWallpaperX
                 SelectVideo = "選擇一個影片檔案",
                 VideoFiles = "影片檔案",
                 AutoRun = "開機自動啟動",
+                Reset = "恢復預設設定",
                 ForceExit = "強制結束程式",
                 Help = "快速鍵:\r\n\r\n\tCtrl + Alt + O : 顯示或隱藏設定介面；\r\n\r\n\tCtrl + Alt + P : 播放或暫停影片。",
                 Source = "原始碼 (GPL 2.0)"
@@ -95,6 +97,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Sélectionner un fichier vidéo",
                 VideoFiles = "Fichiers vidéo",
                 AutoRun = "Démarrage automatique",
+                Reset = "Rétablir les paramètres par défaut",
                 ForceExit = "Forcer la fermeture du programme",
                 Help = "Raccourcis :\r\n\r\n\tCtrl + Alt + O : Afficher ou masquer l'interface des paramètres ;\r\n\r\n\tCtrl + Alt + P : Lire ou mettre en pause la vidéo.",
                 Source = "Code source (GPL 2.0)"
@@ -109,6 +112,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Selecionar um arquivo de vídeo",
                 VideoFiles = "Arquivos de vídeo",
                 AutoRun = "Iniciar automaticamente com o Windows",
+                Reset = "Restaurar padrões",
                 ForceExit = "Forçar saída do programa",
                 Help = "Atalhos:\r\n\r\n\tCtrl + Alt + O : Mostrar ou ocultar a interface de configuração;\r\n\r\n\tCtrl + Alt + P : Reproduzir ou pausar o vídeo.",
                 Source = "Código-fonte (GPL 2.0)"
@@ -123,6 +127,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Videodatei auswählen",
                 VideoFiles = "Videodateien",
                 AutoRun = "Autostart",
+                Reset = "Auf Standardwerte zurücksetzen",
                 ForceExit = "Programm gewaltsam beenden",
                 Help = "Tastenkürzel:\r\n\r\n\tStrg + Alt + O : Konfigurationsfenster ein- oder ausblenden;\r\n\r\n\tStrg + Alt + P : Video abspielen oder pausieren.",
                 Source = "Quellcode (GPL 2.0)"
@@ -137,6 +142,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Вибрати відеофайл",
                 VideoFiles = "Відеофайли",
                 AutoRun = "Автозапуск",
+                Reset = "Скинути до стандартних налаштувань",
                 ForceExit = "Примусовий вихід з програми",
                 Help = "Гарячі клавіші:\r\n\r\n\tCtrl + Alt + O : Показати або приховати інтерфейс налаштувань;\r\n\r\n\tCtrl + Alt + P : Відтворити або призупинити відео.",
                 Source = "Вихідний код (GPL 2.0)"
@@ -151,6 +157,7 @@ namespace LiveWallpaperX
                 SelectVideo = "動画ファイルを選択",
                 VideoFiles = "動画ファイル",
                 AutoRun = "自動起動",
+                Reset = "既定値に戻す",
                 ForceExit = "プログラムを強制終了",
                 Help = "ショートカット:\r\n\r\n\tCtrl + Alt + O : 設定画面の表示/非表示;\r\n\r\n\tCtrl + Alt + P : 動画の再生/一時停止。",
                 Source = "ソースコード (GPL 2.0)"
@@ -165,6 +172,7 @@ namespace LiveWallpaperX
                 SelectVideo = "비디오 파일 선택",
                 VideoFiles = "비디오 파일",
                 AutoRun = "자동 시작",
+                Reset = "기본값으로 재설정",
                 ForceExit = "프로그램 강제 종료",
                 Help = "단축키:\r\n\r\n\tCtrl + Alt + O : 설정 창 표시/숨기기;\r\n\r\n\tCtrl + Alt + P : 동영상 재생/일시정지.",
                 Source = "소스 코드 (GPL 2.0)"
@@ -179,6 +187,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Seleccionar un archivo de video",
                 VideoFiles = "Archivos de video",
                 AutoRun = "Inicio automático",
+                Reset = "Restablecer valores predeterminados",
                 ForceExit = "Forzar salida del programa",
                 Help = "Atajos:\r\n\r\n\tCtrl + Alt + O : Mostrar u ocultar la interfaz de configuración;\r\n\r\n\tCtrl + Alt + P : Reproducir o pausar el video.",
                 Source = "Código fuente (GPL 2.0)"
@@ -193,6 +202,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Выбрать видеофайл",
                 VideoFiles = "Видеофайлы",
                 AutoRun = "Автозапуск",
+                Reset = "Сбросить настройки по умолчанию",
                 ForceExit = "Принудительный выход из программы",
                 Help = "Горячие клавиши:\r\n\r\n\tCtrl + Alt + O : Показать или скрыть окно настроек;\r\n\r\n\tCtrl + Alt + P : Воспроизвести или приостановить видео.",
                 Source = "Исходный код (GPL 2.0)"
@@ -207,6 +217,7 @@ namespace LiveWallpaperX
                 SelectVideo = "Seleziona un file video",
                 VideoFiles = "File video",
                 AutoRun = "Avvio automatico",
+                Reset = "Ripristina impostazioni predefinite",
                 ForceExit = "Forza chiusura del programma",
                 Help = "Scorciatoie:\r\n\r\n\tCtrl + Alt + O : Mostra o nascondi l'interfaccia delle impostazioni;\r\n\r\n\tCtrl + Alt + P : Riproduci o metti in pausa il video.",
                 Source = "Codice sorgente (GPL 2.0)"

@@ -23,7 +23,7 @@ A lightweight live wallpaper utility for Windows 11. Portable, no installation r
 
 | Shortcut | Function |
 |---|---|
-| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>O</kbd> | Show or hide settings |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>O</kbd> | Show or hide setup window |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>P</kbd> | Play or pause the video |
 
 ## License

@@ -1,16 +1,13 @@
 ﻿// SPDX-License-Identifier: GPL-2.0-only
 // Copyright (C) 2026 lalaki.
 using Microsoft.Win32;
-using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
-using System.Windows.Media;
 
 namespace LiveWallpaperX.Project
 {
@@ -23,11 +20,6 @@ namespace LiveWallpaperX.Project
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [DllImport("user32.dll")]
         private static extern IntPtr SetParent(IntPtr child, IntPtr parent);
-
-        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        [DllImport("user32.dll")]
-        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
-
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
@@ -37,90 +29,85 @@ namespace LiveWallpaperX.Project
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [DllImport("user32.dll")]
         private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
-
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [DllImport("user32.dll", EntryPoint = "FindWindowExW", CharSet = CharSet.Unicode)]
         private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr childAfter, string className, IntPtr windowName);
-
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW")]
+        [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode)]
         private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, uint flags, uint timeout, out IntPtr result);
-
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [DllImport("kernel32.dll", EntryPoint = "WritePrivateProfileStringW", CharSet = CharSet.Unicode)]
         private static extern bool WritePrivateProfileString(string section, string key, string value, string filePath);
-
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [DllImport("kernel32.dll", EntryPoint = "GetPrivateProfileStringW", CharSet = CharSet.Unicode)]
-        private static extern uint GetPrivateProfileString(string section, string key, string defaultValue, StringBuilder str, uint size, string filePath);
-        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-        private const int HOTKEY_ID = 1;
+        private static extern uint GetPrivateProfileString(string section, string key, string defaultValue, IntPtr str, uint size, string filePath);
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        private const int VIDEO_HOTKEY_ID = 1;
         private const int SETUP_HOTKEY_ID = 2;
         private const int WM_HOTKEY = 0x0312;
         private const uint MOD_ALT = 0x0001;
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_NOREPEAT = 0x4000;
-        private const uint GW_HWNDNEXT‌ = 2;
-        private const uint SWP_NOSIZE = 0x0001;
-        private const uint SWP_NOACTIVATE = 0x0010;
         private const long WS_POPUP = 0x80000000L;
         private const long WS_EX_LAYERED = 0x00080000L;
         private const long WS_EX_TRANSPARENT = 0x00000020L;
-        private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        private const string AppName = "LiveWallpaperX";
-        private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
-        private static readonly Lazy<string> mLocation = new Lazy<string>(() => Assembly.GetExecutingAssembly().Location);
-        private static readonly Lazy<string> mConfig = new Lazy<string>(() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), $"{AppName}.ini"));
-        private static readonly Lazy<LiveWallpaperX> mWallpaperWindow = new Lazy<LiveWallpaperX>(() => new LiveWallpaperX(WindowType.Wallpaper));
-        private static readonly Lazy<Timer> mTimer = new Lazy<Timer>(() => new Timer() { Interval = 3000 });
-        private static readonly Lazy<Language.LanguagePack> mLanguagePack = new Lazy<Language.LanguagePack>(() => Language.GetLanguagePack(mLangName));
-        private static readonly Lazy<LiveWallpaperX> mSettingsWindow = new Lazy<LiveWallpaperX>(() => new LiveWallpaperX(WindowType.Settings));
-        private readonly Lazy<MediaElement> mMedia = new Lazy<MediaElement>(() => new MediaElement()
+        private const string APP_NAME = "LiveWallpaperX";
+        private const string RUN_KEY = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new(-4);
+        private static readonly Lazy<string> mLocation = new(() => System.Reflection.Assembly.GetExecutingAssembly().Location);
+        private static readonly Lazy<string> mConfig = new(() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), $"{APP_NAME}.ini"));
+        private static readonly Lazy<string> mPidFile = new(() => Path.Combine(Path.GetDirectoryName(mConfig.Value), $"{APP_NAME}.pid"));
+        private static readonly Lazy<LiveWallpaperX> mWallpaperWindow = new(() => new LiveWallpaperX(ValueTypes.Wallpaper));
+        private static readonly Lazy<Language.LanguagePack> mLanguagePack = new(() => Language.GetLanguagePack(mLangName));
+        private static readonly Lazy<LiveWallpaperX> mSettingsWindow = new(() => new LiveWallpaperX(ValueTypes.Settings));
+        private static readonly Lazy<ManualResetEvent> mResetEvent = new(() => new ManualResetEvent(false));
+        private readonly Lazy<MediaElement> mMedia = new(() => new MediaElement()
         {
             IsMuted = true,
             IsHitTestVisible = false,
             LoadedBehavior = MediaState.Manual,
-            Stretch = Stretch.Fill,
+            Stretch = System.Windows.Media.Stretch.Fill,
             UnloadedBehavior = MediaState.Manual
         });
-        private static IntPtr mDefview = IntPtr.Zero;
-        private static IntPtr mParent = IntPtr.Zero;
-        private static FileStream mPidLock;
-        private readonly WindowType mType;
+        private static IntPtr mWorker = IntPtr.Zero;
+        private static FileStream? mPidLock;
+        private static string? mLangName;
+        private readonly byte mValueTypes;
         private bool mPlaying = true;
-        private static string mLangName = null;
-        public enum WindowType : byte
+        private static class ValueTypes
         {
-            Wallpaper, Settings
+            public const byte Wallpaper = 0;
+            public const byte Settings = 1;
+            public const string Video = "video";
+            public const string Pause = "pause";
+            public const string Lang = "lang";
         }
-        public LiveWallpaperX(WindowType type)
+        public LiveWallpaperX(byte valueTypes)
         {
-            mType = type;
+            mValueTypes = valueTypes;
             var languagePack = mLanguagePack.Value;
-            Icon = System.Drawing.Icon.ExtractAssociatedIcon(mLocation.Value);
-            switch (type)
+            Icon = Icon.ExtractAssociatedIcon(mLocation.Value);
+            switch (valueTypes)
             {
-                case WindowType.Wallpaper:
+                case ValueTypes.Wallpaper:
                     FormBorderStyle = FormBorderStyle.None;
+                    Bounds = Screen.PrimaryScreen.Bounds;
                     ShowInTaskbar = false;
                     Text = languagePack.Title;
                     Opacity = 0;
-                    BackColor = System.Drawing.Color.White;
+                    BackColor = Color.White;
                     AutoSize = false;
                     DoubleBuffered = true;
-                    Bounds = Screen.PrimaryScreen.Bounds;
-                    SetStyle(ControlStyles.AllPaintingInWmPaint |
-                         ControlStyles.UserPaint |
-                         ControlStyles.OptimizedDoubleBuffer, true);
-                    WindowState = FormWindowState.Minimized;
+                    SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+                    WindowState = FormWindowState.Maximized;
                     var media = mMedia.Value;
-                    media.MediaEnded += Media_MediaEnded;
+                    media.MediaEnded += Media_Ended;
                     var grid = new Grid();
                     var children = grid.Children;
                     children.Add(media);
                     children.Add(new Border
                     {
-                        Background = new SolidColorBrush(Color.FromArgb(50, 0, 0, 70)),
+                        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(50, 0, 0, 70)),
                         IsHitTestVisible = false
                     });
                     Controls.Add(new ElementHost
@@ -128,32 +115,42 @@ namespace LiveWallpaperX.Project
                         Dock = DockStyle.Fill,
                         Child = grid
                     });
-                    SetParent(Handle, mParent);
                     Shown += WallpaperForm_Shown;
                     break;
-                case WindowType.Settings:
+                case ValueTypes.Settings:
                     Text = languagePack.SetupTitle;
-                    AutoSize = true;
-                    StartPosition = FormStartPosition.CenterScreen;
+                    try
+                    {
+                        Text += $" | Ver: {FileVersionInfo.GetVersionInfo(mLocation.Value).ProductVersion}";
+                    }
+                    catch
+                    {
+                    }
+
+                    AutoSize = false;
                     MaximizeBox = false;
                     TopMost = true;
+                    StartPosition = FormStartPosition.CenterScreen;
                     Height = 320;
                     var menuStrip = new MenuStrip();
                     var menuItem = new ToolStripMenuItem(languagePack.Menu);
-                    var selectVideoItem = new ToolStripMenuItem(languagePack.SelectVideo);
+                    var chooseVideoItem = new ToolStripMenuItem(languagePack.SelectVideo);
                     var autoStartItem = new ToolStripMenuItem(languagePack.AutoRun)
                     {
                         CheckOnClick = true,
                         Checked = CheckAutoRun()
                     };
                     var exitItem = new ToolStripMenuItem(languagePack.ForceExit);
-                    menuItem.DropDownItems.Add(selectVideoItem);
+                    var resetItem = new ToolStripMenuItem(languagePack.Reset);
+                    menuItem.DropDownItems.Add(chooseVideoItem);
                     menuItem.DropDownItems.Add(autoStartItem);
                     menuItem.DropDownItems.Add(new ToolStripSeparator());
                     menuItem.DropDownItems.Add(exitItem);
+                    menuItem.DropDownItems.Add(new ToolStripSeparator());
+                    menuItem.DropDownItems.Add(resetItem);
                     menuStrip.Items.Add(menuItem);
-                    var link = new ToolStripButton() { Text = languagePack.Source };
-                    menuStrip.Items.Add(link);
+                    var linkBtn = new ToolStripButton() { Text = languagePack.Source };
+                    menuStrip.Items.Add(linkBtn);
                     MainMenuStrip = menuStrip;
                     Controls.Add(menuStrip);
                     var help = new System.Windows.Forms.Label()
@@ -161,27 +158,117 @@ namespace LiveWallpaperX.Project
                         Text = languagePack.Help,
                         AutoSize = false,
                         Dock = DockStyle.Fill,
-                        Font = new System.Drawing.Font("Segoe UI", 12.5f),
-                        TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+                        Font = new Font("Segoe UI", 12.5f),
+                        TextAlign = ContentAlignment.MiddleCenter
                     };
                     Controls.Add(help);
                     Width = TextRenderer.MeasureText(languagePack.Help, help.Font).Width * 5 / 4;
-                    selectVideoItem.Click += Btn_Click;
-                    exitItem.Click += ExitBtn_Click;
-                    autoStartItem.CheckedChanged += AutoCbx_Checked;
-                    link.Click += Link_Click;
+                    linkBtn.Click += LinkBtn_Click;
+                    exitItem.Click += ExitItem_Click;
+                    resetItem.Click += Reset_Click;
+                    chooseVideoItem.Click += ChooseItem_Click;
+                    autoStartItem.CheckedChanged += AutoStart_Changed;
                     break;
+            }
+        }
+
+        [STAThread]
+        public static void Main()
+        {
+            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            var pidFile = mPidFile.Value;
+            try
+            {
+                mPidLock = new FileStream(pidFile, FileMode.Create, FileAccess.ReadWrite);
+            }
+            catch
+            {
+            }
+
+            if (mPidLock == null)
+            {
+                try
+                {
+                    mPidLock = new FileStream(pidFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    using var reader = new BinaryReader(mPidLock);
+                    Process.GetProcessById(reader.ReadInt32()).Kill();
+                }
+                catch
+                {
+                }
+
+                return;
+            }
+
+            try
+            {
+                var bw = new BinaryWriter(mPidLock);
+                bw.Write(Process.GetCurrentProcess().Id);
+                bw.Flush();
+            }
+            catch
+            {
+            }
+
+            mLangName = GetValue(ValueTypes.Lang);
+            var path = GetValue(ValueTypes.Video);
+            Uri? videoUrl = null;
+            if (File.Exists(path))
+            {
+                try
+                {
+                    videoUrl = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+                }
+                catch
+                {
+                }
+            }
+
+            if (videoUrl == null)
+            {
+                Application.Run(mSettingsWindow.Value);
+                return;
+            }
+
+            ThreadPool.QueueUserWorkItem(BeforeCreateWorker, 0);
+            var wallpaperWindow = mWallpaperWindow.Value;
+            var media = wallpaperWindow.mMedia.Value;
+            try
+            {
+                media.Source = videoUrl;
+                media.Play();
+            }
+            catch
+            {
+            }
+
+            if (bool.TryParse(GetValue(ValueTypes.Pause), out bool pause))
+            {
+                wallpaperWindow.mPlaying = !pause;
+            }
+
+            Application.Run(wallpaperWindow);
+        }
+
+        private void BeginWallpaperHandling(object obj)
+        {
+            if (mResetEvent.Value.WaitOne(20 * 1000))
+            {
+                Invoke(SetParent, Handle, mWorker);
+            }
+            else
+            {
+                MessageBox.Show("This system is not compatible.");
+                Quit();
             }
         }
 
         private void WallpaperForm_Shown(object sender, EventArgs e)
         {
-            WindowState = FormWindowState.Maximized;
-            var timer = mTimer.Value;
-            timer.Tick += Timer_Tick;
-            timer.Start();
-            Timer_Tick(sender, e);
-            if (!RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, (uint)Keys.P))
+            ThreadPool.QueueUserWorkItem(BeginWallpaperHandling, sender);
+            if (!RegisterHotKey(Handle, VIDEO_HOTKEY_ID, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, (uint)Keys.P))
             {
                 SetValue("RegisterHotKey Ctrl + Alt + P", "failed");
             }
@@ -197,15 +284,7 @@ namespace LiveWallpaperX.Project
             }
         }
 
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            if (GetWindow(mDefview, GW_HWNDNEXT‌) != Handle)
-            {
-                SetWindowPos(Handle, mDefview, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
-            }
-        }
-
-        private void Media_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
+        private void Media_Ended(object sender, System.Windows.RoutedEventArgs e)
         {
             var media = mMedia.Value;
             try
@@ -218,54 +297,87 @@ namespace LiveWallpaperX.Project
             }
         }
 
-        private void Btn_Click(object sender, EventArgs e)
+        private void ChooseItem_Click(object sender, EventArgs e)
         {
-            using (var dlg = new System.Windows.Forms.OpenFileDialog
+            using var dlg = new System.Windows.Forms.OpenFileDialog
             {
                 Multiselect = false,
                 CheckFileExists = true,
                 Filter = $"{mLanguagePack.Value.VideoFiles}|*.mp4;*.avi;*.wmv"
-            })
+            };
+            if (dlg.ShowDialog(this) != DialogResult.OK)
             {
-                if (dlg.ShowDialog(this) != DialogResult.OK)
-                {
-                    return;
-                }
+                return;
+            }
 
-                if (!SetValue("video", dlg.FileName))
-                {
-                    MessageBox.Show("Failed to save configuration.", "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+            if (!SetValue(ValueTypes.Video, dlg.FileName))
+            {
+                MessageBox.Show("Failed to save configuration.", "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
-                if (mPidLock != null)
-                {
-                    try
-                    {
-                        mPidLock.Dispose();
-                    }
-                    catch
-                    {
-                    }
-                }
+            ReleasePid();
+            Application.Restart();
+            Quit();
+        }
 
-                Application.Restart();
-                Environment.Exit(0);
+        private static void ReleasePid()
+        {
+            var pidLock = mPidLock;
+            if (pidLock != null)
+            {
+                try
+                {
+                    pidLock.Dispose();
+                }
+                catch
+                {
+                }
             }
         }
 
-        private void Link_Click(object sender, EventArgs e)
+        private static void Quit()
+        {
+            Environment.Exit(0);
+            Environment.FailFast(string.Empty);
+        }
+
+        private void LinkBtn_Click(object sender, EventArgs e)
         {
             try
             {
-                Process.Start($"https://github.com/lalakii/{AppName}");
+                Process.Start($"https://github.com/lalakii/{APP_NAME}");
             }
             catch
             {
             }
         }
 
-        private void ExitBtn_Click(object sender, EventArgs e)
+        private void Reset_Click(object sender, EventArgs e)
+        {
+            ReleasePid();
+            SetRun(false);
+            SafeDelete(mConfig.Value);
+            SafeDelete(mPidFile.Value);
+            Quit();
+        }
+
+        private static void SafeDelete(string file)
+        {
+            if (File.Exists(file))
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        private void ExitItem_Click(object sender, EventArgs e)
         {
             try
             {
@@ -276,12 +388,11 @@ namespace LiveWallpaperX.Project
             }
             finally
             {
-                Environment.Exit(0);
-                Environment.FailFast(string.Empty);
+                Quit();
             }
         }
 
-        private void AutoCbx_Checked(object sender, EventArgs e)
+        private void AutoStart_Changed(object sender, EventArgs e)
         {
             if (sender is ToolStripMenuItem cbx)
             {
@@ -289,118 +400,40 @@ namespace LiveWallpaperX.Project
             }
         }
 
-
-        [STAThread]
-        public static int Main()
+        private static void BeforeCreateWorker(object _)
         {
-            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            var configIni = mConfig.Value;
-            var pidFile = Path.Combine(Path.GetDirectoryName(configIni), $"{AppName}.pid");
-            try
-            {
-                mPidLock = new FileStream(pidFile, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
-            }
-            catch
-            {
-            }
+            EnumWindows(EnumWindowsProcFunc, IntPtr.Zero);
+        }
 
-            if (mPidLock == null)
+        private static void BeginCreateWorker(object hWndObj)
+        {
+            if (hWndObj is IntPtr hWnd)
             {
-                int pid = -1;
-                try
+                int limit = 10;
+                while (limit-- > 0)
                 {
-                    mPidLock = new FileStream(pidFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    using (var reader = new StreamReader(mPidLock))
+                    var hWorker = FindWindowEx(hWnd, IntPtr.Zero, "WorkerW", IntPtr.Zero);
+                    if (hWorker != IntPtr.Zero)
                     {
-                        if (int.TryParse(reader.ReadLine(), out pid))
-                        {
-                            var proc = Process.GetProcessById(pid);
-                            proc?.Kill();
-                        }
+                        mWorker = hWorker;
+                        break;
                     }
 
-                    return 0;
-                }
-                catch
-                {
-                }
-
-                return -pid;
-            }
-
-            try
-            {
-                var sw = new StreamWriter(mPidLock);
-                sw.WriteLine(Process.GetCurrentProcess().Id.ToString());
-                sw.Flush();
-            }
-            catch
-            {
-            }
-
-            mLangName = GetValue("lang");
-            Uri videoUrl = null;
-            var path = GetValue("video");
-            if (File.Exists(path))
-            {
-                try
-                {
-                    videoUrl = new Uri(Path.GetFullPath(path), UriKind.Absolute);
-                }
-                catch
-                {
+                    SendMessageTimeout(hWnd, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out IntPtr r);
+                    SendMessageTimeout(hWnd, 0x052C, new IntPtr(0xD), IntPtr.Zero, 0, 1000, out r);
+                    SendMessageTimeout(hWnd, 0x052C, new IntPtr(0xD), new IntPtr(0x1), 0, 1000, out r);
+                    Thread.Sleep(1000);
                 }
             }
 
-            if (videoUrl == null)
-            {
-                Application.Run(mSettingsWindow.Value);
-                return 0;
-            }
-
-            EnumWindows(EnumWindowsProcFunc, IntPtr.Zero);
-            if (mDefview == IntPtr.Zero)
-            {
-                return -1;
-            }
-
-            var hWorker = FindWindowEx(mParent, IntPtr.Zero, "WorkerW", IntPtr.Zero);
-            if (hWorker == IntPtr.Zero)
-            {
-                SendMessageTimeout(mParent, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out IntPtr r);
-                SendMessageTimeout(mParent, 0x052C, new IntPtr(0xD), IntPtr.Zero, 0, 1000, out r);
-                SendMessageTimeout(mParent, 0x052C, new IntPtr(0xD), new IntPtr(0x1), 0, 1000, out r);
-            }
-
-            var wallpaperWindow = mWallpaperWindow.Value;
-            var media = wallpaperWindow.mMedia.Value;
-            try
-            {
-                media.Source = videoUrl;
-                media.Play();
-            }
-            catch
-            {
-            }
-
-            if (GetValue("pause").IndexOf("true", StringComparison.OrdinalIgnoreCase) > -1)
-            {
-                wallpaperWindow.mPlaying = false;
-            }
-
-            Application.Run(wallpaperWindow);
-            return 0;
+            mResetEvent.Value.Set();
         }
 
         private static bool EnumWindowsProcFunc(IntPtr hWnd, IntPtr lParam)
         {
-            IntPtr hDefview = FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", IntPtr.Zero);
-            if (hDefview != IntPtr.Zero)
+            if (FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", IntPtr.Zero) != IntPtr.Zero)
             {
-                mDefview = hDefview;
-                mParent = hWnd;
+                ThreadPool.QueueUserWorkItem(BeginCreateWorker, hWnd);
                 return false;
             }
 
@@ -409,53 +442,66 @@ namespace LiveWallpaperX.Project
 
         private static bool SetValue(string key, string value)
         {
-            return WritePrivateProfileString(string.Empty, key, value, mConfig.Value);
+            return WritePrivateProfileString(APP_NAME, key, value, mConfig.Value);
         }
 
         private static string GetValue(string key)
         {
+            string value = string.Empty;
             if (File.Exists(mConfig.Value))
             {
-                var buffer = new StringBuilder(4096);
-                if (GetPrivateProfileString(string.Empty, key, string.Empty, buffer, (uint)buffer.Capacity, mConfig.Value) > 0)
+                uint size;
+                var chars = new char[4096];
+                var handle = GCHandle.Alloc(chars, GCHandleType.Pinned);
+                if ((size = GetPrivateProfileString(APP_NAME, key, string.Empty, handle.AddrOfPinnedObject(), (uint)chars.Length, mConfig.Value)) > 0)
                 {
-                    return buffer.ToString();
+                    value = new string(chars, 0, (int)size);
                 }
+
+                handle.Free();
             }
 
-            return string.Empty;
+            return value;
         }
 
         private static void SetRun(bool auto)
         {
-            using (var key = Registry.CurrentUser.CreateSubKey(RunKey))
+            try
             {
+                using var key = Registry.CurrentUser.CreateSubKey(RUN_KEY);
                 if (auto)
                 {
-                    key.SetValue(AppName, string.Format("\"{0}\"", mLocation.Value), RegistryValueKind.String);
+                    key.SetValue(APP_NAME, string.Format("\"{0}\"", mLocation.Value), RegistryValueKind.String);
                 }
                 else
                 {
-                    key.DeleteValue(AppName);
+                    key.DeleteValue(APP_NAME);
                 }
+            }
+            catch
+            {
             }
         }
 
         private static bool CheckAutoRun()
         {
-            using (var key = Registry.CurrentUser.OpenSubKey(RunKey))
+            using var key = Registry.CurrentUser.OpenSubKey(RUN_KEY);
+            var path = key.GetValue(APP_NAME);
+            if (path is string appPath && Path.GetFullPath(appPath.Trim('\"')).Equals(mLocation.Value))
             {
-                var path = key.GetValue(AppName);
-                if (path is string appPath)
-                {
-                    if (Path.GetFullPath(appPath.Trim('\"')).Equals(mLocation.Value))
-                    {
-                        return true;
-                    }
-                }
+                return true;
             }
 
             return false;
+        }
+
+        private void SettingsWindow_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (sender is LiveWallpaperX window)
+            {
+                window.Hide();
+                e.Cancel = true;
+            }
         }
 
         protected override bool ShowWithoutActivation
@@ -470,8 +516,8 @@ namespace LiveWallpaperX.Project
         {
             get
             {
-                CreateParams cp = base.CreateParams;
-                if (mType == WindowType.Settings)
+                var cp = base.CreateParams;
+                if (mValueTypes == ValueTypes.Settings)
                 {
                     return cp;
                 }
@@ -489,10 +535,11 @@ namespace LiveWallpaperX.Project
             {
                 switch (m.WParam.ToInt32())
                 {
-                    case HOTKEY_ID:
+                    case VIDEO_HOTKEY_ID:
                         var media = mMedia.Value;
                         if (media != null)
                         {
+                            SetValue(ValueTypes.Pause, mPlaying.ToString());
                             mPlaying = !mPlaying;
                             if (mPlaying)
                             {
@@ -502,8 +549,6 @@ namespace LiveWallpaperX.Project
                             {
                                 media.Pause();
                             }
-
-                            SetValue("pause", (!mPlaying).ToString());
                         }
 
                         break;
@@ -525,15 +570,6 @@ namespace LiveWallpaperX.Project
             }
 
             base.WndProc(ref m);
-        }
-
-        private void SettingsWindow_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (sender is LiveWallpaperX window)
-            {
-                window.Hide();
-                e.Cancel = true;
-            }
         }
     }
 }

@@ -1,3 +1,13 @@
 <Solution>
-  <Project Path="LiveWallpaperX.csproj" Id="88ebcd36-691f-4f99-ba6b-683aaf6131f7" />
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="LiveWallpaperX.csproj" Id="88ebcd36-691f-4f99-ba6b-683aaf6131f7">
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
 </Solution>
