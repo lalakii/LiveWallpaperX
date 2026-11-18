@@ -1,6 +1,6 @@
 # LiveWallpaperX
 
-<img src="./logo.png" width="64" alt="LiveWallpaperX Logo">
+<img src="https://fastly.jsdelivr.net/gh/lalakii/LiveWallpaperX/logo.png?v=1.0" width="64" alt="LiveWallpaperX Logo">
 
 [![Downloads](https://img.shields.io/github/downloads/lalakii/LiveWallpaperX/total)](https://github.com/lalakii/LiveWallpaperX/releases)
 [![License](https://img.shields.io/badge/License-GNU%20GPLv2-darkred?logo=gnu)](https://github.com/lalakii/LiveWallpaperX/blob/master/LICENSE)
@@ -11,7 +11,7 @@ A lightweight live wallpaper utility for Windows 11. Portable, no installation r
 
 [简体中文](./README.zh_CN.md) | [English](./README.md)
 
-![LiveWallpaperX Setup](./demo.jpg)
+![LiveWallpaperX Setup](https://fastly.jsdelivr.net/gh/lalakii/LiveWallpaperX/demo.jpg?v=1.0)
 
 ## Download
 
