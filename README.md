@@ -15,7 +15,7 @@ A lightweight live wallpaper utility for Windows 11. Portable, no installation r
 
 ## Download
 
-- [GitHub](https://github.com/lalakii/LiveWallpaperX)
+- [GitHub](https://github.com/lalakii/LiveWallpaperX/releases)
 - [China mirror](https://lalaki.cn/m/LiveWallpaperX)
 - [SourceForge](https://sourceforge.net/projects/livewallpaperx/files/)
 
